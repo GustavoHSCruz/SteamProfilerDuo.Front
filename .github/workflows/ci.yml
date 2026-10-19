@@ -1,0 +1,38 @@
+name: Front checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: steamprofiler-duo-front
+      - uses: actions/checkout@v4
+        with:
+          repository: GustavoHSCruz/SteamProfilerDuo.Api
+          path: steamprofiler-duo-api
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: steamprofiler-duo-front/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: npm ci --ignore-scripts
+        working-directory: steamprofiler-duo-front
+      - run: npm run format:check
+        working-directory: steamprofiler-duo-front
+      - run: npm run build
+        working-directory: steamprofiler-duo-front
+      - run: npx playwright install --with-deps chromium
+        working-directory: steamprofiler-duo-front
+      - run: npm test
+        working-directory: steamprofiler-duo-front
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-traces
+          path: steamprofiler-duo-front/test-results
